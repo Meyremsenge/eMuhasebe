@@ -1,0 +1,143 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Müşteriler / Tedarikçiler - eMuhasebe Pro{% endblock %}
+
+{% block page_title %}Müşteriler / Tedarikçiler{% endblock %}
+{% block page_subtitle %}Müşteri ve tedarikçi kayıtları{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('musteriler.yeni') }}" class="btn btn-primary">
+    <i class="fas fa-plus"></i>
+    Yeni Kayıt
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filtreler -->
+<div class="filter-bar">
+    <form method="GET" action="{{ url_for('musteriler.liste') }}" style="display: flex; flex-wrap: wrap; gap: 1rem; width: 100%; align-items: flex-end;">
+        <div class="form-group">
+            <label class="form-label">Arama</label>
+            <input type="text" name="arama" class="form-control" placeholder="Unvan veya vergi no..." value="{{ arama }}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Tip</label>
+            <select name="tip" class="form-control form-select">
+                <option value="">Tümü</option>
+                <option value="musteri" {% if tip == 'musteri' %}selected{% endif %}>Müşteri</option>
+                <option value="tedarikci" {% if tip == 'tedarikci' %}selected{% endif %}>Tedarikçi</option>
+                <option value="her_ikisi" {% if tip == 'her_ikisi' %}selected{% endif %}>Her İkisi</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+                Filtrele
+            </button>
+            <a href="{{ url_for('musteriler.liste') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i>
+                Temizle
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Liste -->
+<div class="card">
+    <div class="card-body" style="padding: 0;">
+        {% if musteriler.items %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Unvan</th>
+                        <th>Vergi No</th>
+                        <th>Telefon</th>
+                        <th>E-posta</th>
+                        <th>Tip</th>
+                        <th>Durum</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for musteri in musteriler.items %}
+                    <tr>
+                        <td style="font-weight: 600;">{{ musteri.unvan }}</td>
+                        <td>{{ musteri.vergi_no or '-' }}</td>
+                        <td>{{ musteri.telefon or '-' }}</td>
+                        <td>{{ musteri.email or '-' }}</td>
+                        <td>
+                            {% if musteri.tip == 'musteri' %}
+                                <span class="badge badge-primary">Müşteri</span>
+                            {% elif musteri.tip == 'tedarikci' %}
+                                <span class="badge badge-success">Tedarikçi</span>
+                            {% else %}
+                                <span class="badge badge-gray">Her İkisi</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if musteri.aktif %}
+                                <span class="badge badge-success">Aktif</span>
+                            {% else %}
+                                <span class="badge badge-danger">Pasif</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{{ url_for('musteriler.duzenle', id=musteri.id) }}" class="btn btn-sm btn-secondary" title="Düzenle">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form id="delete-form-{{ musteri.id }}" action="{{ url_for('musteriler.sil', id=musteri.id) }}" method="POST" style="display: none;">
+                                </form>
+                                <button type="button" onclick="confirmDelete('delete-form-{{ musteri.id }}')" class="btn btn-sm btn-danger" title="Sil">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Sayfalama -->
+        {% if musteriler.pages > 1 %}
+        <div class="pagination">
+            {% if musteriler.has_prev %}
+                <a href="{{ url_for('musteriler.liste', sayfa=musteriler.prev_num, tip=tip, arama=arama) }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            {% endif %}
+            
+            {% for page in musteriler.iter_pages() %}
+                {% if page %}
+                    {% if page == musteriler.page %}
+                        <span class="active">{{ page }}</span>
+                    {% else %}
+                        <a href="{{ url_for('musteriler.liste', sayfa=page, tip=tip, arama=arama) }}">{{ page }}</a>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            
+            {% if musteriler.has_next %}
+                <a href="{{ url_for('musteriler.liste', sayfa=musteriler.next_num, tip=tip, arama=arama) }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-users empty-state-icon"></i>
+            <h3>Henüz kayıt yok</h3>
+            <p>İlk müşteri veya tedarikçi kaydınızı oluşturun</p>
+            <a href="{{ url_for('musteriler.yeni') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Yeni Kayıt
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

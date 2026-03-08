@@ -1,0 +1,130 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Ürünler / Hizmetler - eMuhasebe Pro{% endblock %}
+
+{% block page_title %}Ürünler / Hizmetler{% endblock %}
+{% block page_subtitle %}Ürün ve hizmet tanımları{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('urunler.yeni') }}" class="btn btn-primary">
+    <i class="fas fa-plus"></i>
+    Yeni Ürün
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filtreler -->
+<div class="filter-bar">
+    <form method="GET" action="{{ url_for('urunler.liste') }}" style="display: flex; flex-wrap: wrap; gap: 1rem; width: 100%; align-items: flex-end;">
+        <div class="form-group">
+            <label class="form-label">Arama</label>
+            <input type="text" name="arama" class="form-control" placeholder="Kod veya ad..." value="{{ arama }}">
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+                Ara
+            </button>
+            <a href="{{ url_for('urunler.liste') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i>
+                Temizle
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Liste -->
+<div class="card">
+    <div class="card-body" style="padding: 0;">
+        {% if urunler.items %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Kod</th>
+                        <th>Ad</th>
+                        <th>Birim</th>
+                        <th style="text-align: right;">Alış Fiyat</th>
+                        <th style="text-align: right;">Satış Fiyat</th>
+                        <th style="text-align: right;">KDV</th>
+                        <th style="text-align: right;">Stok</th>
+                        <th>Durum</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for urun in urunler.items %}
+                    <tr>
+                        <td><code style="background: var(--gray-100); padding: 0.25rem 0.5rem; border-radius: 4px;">{{ urun.kod }}</code></td>
+                        <td style="font-weight: 600;">{{ urun.ad }}</td>
+                        <td>{{ urun.birim }}</td>
+                        <td style="text-align: right;">₺{{ "{:,.2f}".format(urun.alis_fiyat) }}</td>
+                        <td style="text-align: right; color: var(--success-600); font-weight: 500;">₺{{ "{:,.2f}".format(urun.satis_fiyat) }}</td>
+                        <td style="text-align: right;">%{{ urun.kdv_orani }}</td>
+                        <td style="text-align: right;">{{ urun.stok_miktari }}</td>
+                        <td>
+                            {% if urun.aktif %}
+                                <span class="badge badge-success">Aktif</span>
+                            {% else %}
+                                <span class="badge badge-danger">Pasif</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{{ url_for('urunler.duzenle', id=urun.id) }}" class="btn btn-sm btn-secondary" title="Düzenle">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form id="delete-form-{{ urun.id }}" action="{{ url_for('urunler.sil', id=urun.id) }}" method="POST" style="display: none;">
+                                </form>
+                                <button type="button" onclick="confirmDelete('delete-form-{{ urun.id }}')" class="btn btn-sm btn-danger" title="Sil">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Sayfalama -->
+        {% if urunler.pages > 1 %}
+        <div class="pagination">
+            {% if urunler.has_prev %}
+                <a href="{{ url_for('urunler.liste', sayfa=urunler.prev_num, arama=arama) }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            {% endif %}
+            
+            {% for page in urunler.iter_pages() %}
+                {% if page %}
+                    {% if page == urunler.page %}
+                        <span class="active">{{ page }}</span>
+                    {% else %}
+                        <a href="{{ url_for('urunler.liste', sayfa=page, arama=arama) }}">{{ page }}</a>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            
+            {% if urunler.has_next %}
+                <a href="{{ url_for('urunler.liste', sayfa=urunler.next_num, arama=arama) }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-boxes empty-state-icon"></i>
+            <h3>Henüz ürün yok</h3>
+            <p>İlk ürün veya hizmetinizi tanımlayın</p>
+            <a href="{{ url_for('urunler.yeni') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Yeni Ürün
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

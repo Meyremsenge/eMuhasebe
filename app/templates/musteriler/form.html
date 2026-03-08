@@ -1,0 +1,101 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}{{ 'Düzenle' if musteri else 'Yeni Kayıt' }} - eMuhasebe Pro{% endblock %}
+
+{% block page_title %}{{ 'Kayıt Düzenle' if musteri else 'Yeni Müşteri / Tedarikçi' }}{% endblock %}
+{% block page_subtitle %}{{ musteri.unvan if musteri else 'Yeni kayıt oluşturun' }}{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('musteriler.liste') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i>
+    Listeye Dön
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('musteriler.duzenle', id=musteri.id) if musteri else url_for('musteriler.yeni') }}">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-user" style="color: var(--primary-500); margin-right: 0.5rem;"></i>
+                Firma Bilgileri
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label class="form-label required">Unvan / Ad Soyad</label>
+                    <input type="text" name="unvan" class="form-control" 
+                           value="{{ musteri.unvan if musteri else '' }}" 
+                           placeholder="Firma unvanı veya kişi adı" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Kayıt Tipi</label>
+                    <select name="tip" class="form-control form-select" required>
+                        <option value="musteri" {% if musteri and musteri.tip == 'musteri' %}selected{% endif %}>Müşteri</option>
+                        <option value="tedarikci" {% if musteri and musteri.tip == 'tedarikci' %}selected{% endif %}>Tedarikçi</option>
+                        <option value="her_ikisi" {% if musteri and musteri.tip == 'her_ikisi' %}selected{% endif %}>Her İkisi</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Vergi / TC Kimlik No</label>
+                    <input type="text" name="vergi_no" class="form-control" 
+                           value="{{ musteri.vergi_no if musteri else '' }}" 
+                           placeholder="Vergi veya TC Kimlik numarası" maxlength="11">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Vergi Dairesi</label>
+                    <input type="text" name="vergi_dairesi" class="form-control" 
+                           value="{{ musteri.vergi_dairesi if musteri else '' }}" 
+                           placeholder="Vergi dairesi adı">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Telefon</label>
+                    <input type="tel" name="telefon" class="form-control" 
+                           value="{{ musteri.telefon if musteri else '' }}" 
+                           placeholder="0 (5XX) XXX XX XX">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">E-posta</label>
+                    <input type="email" name="email" class="form-control" 
+                           value="{{ musteri.email if musteri else '' }}" 
+                           placeholder="ornek@email.com">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Adres</label>
+                <textarea name="adres" class="form-control" rows="3" 
+                          placeholder="Açık adres bilgisi">{{ musteri.adres if musteri else '' }}</textarea>
+            </div>
+            
+            {% if musteri %}
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="aktif" {% if musteri.aktif %}checked{% endif %}>
+                    <span>Aktif Kayıt</span>
+                </label>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Butonlar -->
+    <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+        <a href="{{ url_for('musteriler.liste') }}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-times"></i>
+            İptal
+        </a>
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-save"></i>
+            {{ 'Güncelle' if musteri else 'Kaydet' }}
+        </button>
+    </div>
+</form>
+{% endblock %}

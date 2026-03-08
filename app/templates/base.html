@@ -1,0 +1,484 @@
+﻿<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}eMuhasebe Pro{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Ana CSS (cache-bust) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ range(1, 999999) | random }}">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- Floating toggle inline CSS (cache-proof) -->
+    <style>
+        .theme-toggle-floating {
+            position: fixed !important;
+            bottom: 90px !important;
+            right: 24px !important;
+            z-index: 99999 !important;
+            display: flex !important;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1.2rem;
+            border-radius: 50px;
+            border: 2px solid rgba(139,92,246,0.6);
+            background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+            color: #fff !important;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 700;
+            font-family: inherit;
+            box-shadow: 0 4px 20px rgba(99,102,241,0.5), 0 0 0 3px rgba(139,92,246,0.15);
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+        .theme-toggle-floating i { font-size: 1.1rem; color: #fbbf24 !important; }
+        .theme-toggle-floating:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 30px rgba(99,102,241,0.6), 0 0 0 5px rgba(139,92,246,0.2);
+        }
+    </style>
+    
+    <!-- Veritabanı Modülü (Firebase + LocalStorage Fallback) -->
+    <script type="module" src="{{ url_for('static', filename='js/db.js') }}"></script>
+    
+    {% block extra_css %}{% endblock %}
+    <script>
+        // Sayfa yüklenmeden önce temayı uygula (flash önleme)
+        (function(){
+            var t = localStorage.getItem('eMuhasebeTheme') || 'dark';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="{{ url_for('static', filename='img/logo1.png') }}" alt="eMuhasebe Logo" class="sidebar-logo-img">
+                    <div class="sidebar-logo-text">
+                        <h1>eMuhasebe</h1>
+                        <span>Muhasebe Sistemi</span>
+                    </div>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle" title="Menüyü Daralt/Genişlet">
+                    <i class="fas fa-angles-left" id="toggleIcon"></i>
+                </button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <!-- Ana Menü -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Ana Menü</div>
+                    <a href="{{ url_for('main.index') }}" class="nav-item {% if request.endpoint == 'main.index' %}active{% endif %}">
+                        <i class="fas fa-home"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </div>
+                
+                <!-- Faturalar -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Fatura Yönetimi</div>
+                    <a href="{{ url_for('alis.liste') }}" class="nav-item {% if 'alis' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>Alış Faturaları</span>
+                    </a>
+                    <a href="{{ url_for('satis.liste') }}" class="nav-item {% if 'satis' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-cash-register"></i>
+                        <span>Satış Faturaları</span>
+                    </a>
+                    <a href="{{ url_for('iade.liste') }}" class="nav-item {% if 'iade' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-undo-alt"></i>
+                        <span>İade Faturaları</span>
+                    </a>
+                </div>
+                
+                <!-- Tanımlamalar -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Tanımlamalar</div>
+                    <a href="{{ url_for('musteriler.liste') }}" class="nav-item {% if 'musteriler' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-users"></i>
+                        <span>Müşteriler / Tedarikçiler</span>
+                    </a>
+                    <a href="{{ url_for('urunler.liste') }}" class="nav-item {% if 'urunler' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-boxes"></i>
+                        <span>Ürünler / Hizmetler</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Ana İçerik -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-title">
+                    <h2>{% block page_title %}Dashboard{% endblock %}</h2>
+                    <p>{% block page_subtitle %}Hoş geldiniz{% endblock %}</p>
+                </div>
+                <div class="header-actions">
+                    {% block header_actions %}{% endblock %}
+                </div>
+            </header>
+
+            <!-- Floating Theme Toggle Button -->
+            <button class="theme-toggle-floating" id="themeToggle" title="Tema Değiştir">
+                <i class="fas fa-moon" id="themeIcon"></i>
+                <span id="themeLabel">Açık Tema</span>
+            </button>
+            
+            <!-- İçerik Alanı -->
+            <div class="content-area">
+                <!-- Flash Mesajları -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} fade-in">
+                                <i class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+                                <span>{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    
+    <!-- Veritabanı Mod Toggle ve Sync Butonları -->
+    <div id="dbModeToggle" style="position: fixed; bottom: 1rem; right: 1rem; z-index: 1000; display: flex; gap: 0.5rem;">
+        <!-- Manuel Sync Butonu -->
+        <button id="syncBtn" onclick="manualSync()" style="
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 50%;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            background: rgba(168, 85, 247, 0.1);
+            color: #7c3aed;
+        " title="Verileri Senkronize Et">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+        
+        <!-- Mod Butonu -->
+        <button id="dbModeBtn" onclick="showModePopup()" style="
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        ">
+            <span id="dbModeIcon" style="width: 10px; height: 10px; border-radius: 50%;"></span>
+            <span id="dbModeText">Yükleniyor...</span>
+            <i class="fas fa-exchange-alt" style="margin-left: 0.25rem; font-size: 0.65rem; opacity: 0.7;"></i>
+        </button>
+    </div>
+
+    <!-- Mod Değiştirme Popup Modal -->
+    <div id="modePopupOverlay" style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.2s ease;
+    ">
+        <div id="modePopupModal" style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-750);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            max-width: 400px;
+            width: 90%;
+            animation: slideUp 0.25s ease;
+            border: 1px solid var(--glass-border-bright);
+        ">
+            <div style="padding: 1.5rem; text-align: center;">
+                <!-- Icon -->
+                <div id="popupIcon" style="
+                    width: 64px;
+                    height: 64px;
+                    border-radius: 50%;
+                    margin: 0 auto 1rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 2rem;
+                "></div>
+                
+                <!-- Title -->
+                <h3 id="popupTitle" style="
+                    margin: 0 0 0.5rem 0;
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                    color: var(--text-primary);
+                "></h3>
+                
+                <!-- Message -->
+                <p id="popupMessage" style="
+                    margin: 0 0 1.5rem 0;
+                    font-size: 0.9rem;
+                    color: var(--text-secondary);
+                    line-height: 1.5;
+                "></p>
+                
+                <!-- Buttons -->
+                <div style="display: flex; gap: 0.75rem; justify-content: center;">
+                    <button onclick="closeModePopup()" style="
+                        padding: 0.75rem 1.5rem;
+                        border: 1px solid var(--glass-border-bright);
+                        background: var(--bg-800);
+                        color: var(--text-secondary);
+                        border-radius: 8px;
+                        font-size: 0.9rem;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    ">
+                        <i class="fas fa-times" style="margin-right: 0.5rem;"></i>İptal
+                    </button>
+                    <button id="popupConfirmBtn" onclick="confirmModeChange()" style="
+                        padding: 0.75rem 1.5rem;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 0.9rem;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    ">
+                        <i class="fas fa-check" style="margin-right: 0.5rem;"></i>Değiştir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translate(-50%, -45%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+    </style>
+    
+    <script type="module">
+        import { init, getMode, setMode, isOnline, Sync } from '{{ url_for("static", filename="js/db.js") }}';
+        
+        // Global değişken
+        let pendingNewMode = null;
+        
+        // Mod durumunu güncelle
+        async function updateModeUI() {
+            await init();
+            const mode = getMode();
+            const btn = document.getElementById('dbModeBtn');
+            const icon = document.getElementById('dbModeIcon');
+            const text = document.getElementById('dbModeText');
+            const syncBtn = document.getElementById('syncBtn');
+            
+            if (mode === 'firebase') {
+                icon.style.background = '#22c55e';
+                text.textContent = '🔥 Firebase';
+                btn.style.background = 'rgba(34, 197, 94, 0.1)';
+                btn.style.color = '#16a34a';
+                btn.title = 'LocalStorage moduna geçmek için tıklayın';
+                // Firebase modunda sync butonu göster
+                syncBtn.style.display = 'flex';
+            } else {
+                icon.style.background = '#3b82f6';
+                text.textContent = '💾 LocalStorage';
+                btn.style.background = 'rgba(59, 130, 246, 0.1)';
+                btn.style.color = '#2563eb';
+                btn.title = 'Firebase moduna geçmek için tıklayın';
+                // LocalStorage modunda sync butonu gizle
+                syncBtn.style.display = 'none';
+            }
+        }
+        
+        // Manuel Senkronizasyon
+        window.manualSync = async function() {
+            const syncBtn = document.getElementById('syncBtn');
+            const icon = syncBtn.querySelector('i');
+            
+            // Buton animasyonu
+            icon.classList.add('fa-spin');
+            syncBtn.disabled = true;
+            
+            try {
+                await Sync.fullSync(true);
+            } finally {
+                icon.classList.remove('fa-spin');
+                syncBtn.disabled = false;
+            }
+        };
+        
+        // Popup göster
+        window.showModePopup = function() {
+            const mode = getMode();
+            pendingNewMode = mode === 'firebase' ? 'local' : 'firebase';
+            
+            const overlay = document.getElementById('modePopupOverlay');
+            const icon = document.getElementById('popupIcon');
+            const title = document.getElementById('popupTitle');
+            const message = document.getElementById('popupMessage');
+            const confirmBtn = document.getElementById('popupConfirmBtn');
+            
+            if (pendingNewMode === 'firebase') {
+                icon.innerHTML = '🔥';
+                icon.style.background = 'rgba(34, 197, 94, 0.1)';
+                title.textContent = 'Firebase Moduna Geç';
+                message.textContent = 'Verileriniz bulut üzerinde Firebase Realtime Database\'de saklanacak. İnternet bağlantısı gereklidir. Verileriniz otomatik olarak senkronize edilecek.';
+                confirmBtn.style.background = '#22c55e';
+                confirmBtn.style.color = 'white';
+            } else {
+                icon.innerHTML = '💾';
+                icon.style.background = 'rgba(59, 130, 246, 0.1)';
+                title.textContent = 'LocalStorage Moduna Geç';
+                message.textContent = 'Verileriniz tarayıcınızda yerel olarak saklanacak. İnternet bağlantısı gerekmez. Mevcut verileriniz korunacak.';
+                confirmBtn.style.background = '#3b82f6';
+                confirmBtn.style.color = 'white';
+            }
+            
+            overlay.style.display = 'block';
+        };
+        
+        // Popup kapat
+        window.closeModePopup = function() {
+            document.getElementById('modePopupOverlay').style.display = 'none';
+            pendingNewMode = null;
+        };
+        
+        // Mod değişikliğini onayla
+        window.confirmModeChange = function() {
+            if (pendingNewMode) {
+                setMode(pendingNewMode);
+                window.location.reload();
+            }
+        };
+        
+        // ESC tuşu ile kapatma
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModePopup();
+        });
+        
+        // Overlay tıklaması ile kapatma
+        document.getElementById('modePopupOverlay').addEventListener('click', (e) => {
+            if (e.target.id === 'modePopupOverlay') closeModePopup();
+        });
+        
+        // Sayfa yüklendiğinde
+        updateModeUI();
+    </script>
+    
+    <script>
+        // Tema Toggle
+        (function() {
+            const saved = localStorage.getItem('eMuhasebeTheme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+            const icon = document.getElementById('themeIcon');
+            const label = document.getElementById('themeLabel');
+            if (icon) {
+                icon.className = saved === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            }
+            if (label) {
+                label.textContent = saved === 'dark' ? 'Açık Tema' : 'Koyu Tema';
+            }
+        })();
+
+        document.getElementById('themeToggle').addEventListener('click', function() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('eMuhasebeTheme', next);
+            const icon = document.getElementById('themeIcon');
+            const label = document.getElementById('themeLabel');
+            icon.className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            label.textContent = next === 'dark' ? 'Açık Tema' : 'Koyu Tema';
+        });
+    </script>
+
+    <script>
+        // Para formatla
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('tr-TR', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            }).format(amount);
+        }
+        
+        // Silme onayı
+        function confirmDelete(formId, message) {
+            if (confirm(message || 'Bu kaydı silmek istediğinizden emin misiniz?')) {
+                document.getElementById(formId).submit();
+            }
+        }
+        
+        // Sidebar Toggle
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.querySelector('.main-content');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const toggleIcon = document.getElementById('toggleIcon');
+        
+        // LocalStorage'dan durumu yükle
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            sidebar.classList.add('collapsed');
+            mainContent.classList.add('expanded');
+            toggleIcon.classList.remove('fa-angles-left');
+            toggleIcon.classList.add('fa-angles-right');
+        }
+        
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.remove('fa-angles-left');
+                toggleIcon.classList.add('fa-angles-right');
+                localStorage.setItem('sidebarCollapsed', 'true');
+            } else {
+                toggleIcon.classList.remove('fa-angles-right');
+                toggleIcon.classList.add('fa-angles-left');
+                localStorage.setItem('sidebarCollapsed', 'false');
+            }
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,195 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Satış Faturası Detay - eMuhasebe Pro{% endblock %}
+
+{% block page_title %}Satış Faturası Detay{% endblock %}
+{% block page_subtitle %}Fatura bilgileri ve kalem detayları{% endblock %}
+
+{% block content %}
+<div class="card fade-in">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-file-invoice-dollar" style="color: var(--success-500); margin-right: 0.5rem;"></i>
+            <span id="faturaNo">Fatura No: -</span>
+        </h3>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="{{ url_for('satis.liste') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Geri Dön
+            </a>
+            <button type="button" class="btn btn-success" onclick="yazdir()">
+                <i class="fas fa-print"></i>
+                Yazdır
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Fatura Bilgileri -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="form-group">
+                <label class="form-label">Fatura No</label>
+                <p id="detayFaturaNo" style="font-weight: 600;">-</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Fatura Tarihi</label>
+                <p id="detayTarih">-</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Müşteri</label>
+                <p id="detayMusteri" style="font-weight: 600;">-</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Durum</label>
+                <p id="detayDurum">-</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Açıklama</label>
+                <p id="detayAciklama">-</p>
+            </div>
+        </div>
+        
+        <!-- Fatura Kalemleri -->
+        <h4 style="margin-bottom: 1rem; color: var(--gray-700);">
+            <i class="fas fa-list" style="margin-right: 0.5rem;"></i>
+            Fatura Kalemleri
+        </h4>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">#</th>
+                        <th>Ürün/Hizmet</th>
+                        <th style="text-align: right;">Miktar</th>
+                        <th>Birim</th>
+                        <th style="text-align: right;">Birim Fiyat</th>
+                        <th style="text-align: right;">KDV %</th>
+                        <th style="text-align: right;">KDV Tutar</th>
+                        <th style="text-align: right;">Toplam</th>
+                    </tr>
+                </thead>
+                <tbody id="faturaKalemleri">
+                    <tr><td colspan="8" style="text-align: center; color: var(--gray-500);">Yükleniyor...</td></tr>
+                </tbody>
+                <tfoot>
+                    <tr style="background: var(--gray-100);">
+                        <td colspan="6"></td>
+                        <td style="text-align: right; font-weight: 600;">Ara Toplam:</td>
+                        <td style="text-align: right; font-weight: 600;" id="araToplam">₺0,00</td>
+                    </tr>
+                    <tr style="background: var(--gray-100);">
+                        <td colspan="6"></td>
+                        <td style="text-align: right; font-weight: 600;">Toplam KDV:</td>
+                        <td style="text-align: right; font-weight: 600;" id="toplamKdv">₺0,00</td>
+                    </tr>
+                    <tr style="background: var(--success-100);">
+                        <td colspan="6"></td>
+                        <td style="text-align: right; font-weight: 700; font-size: 1.1rem; color: var(--success-700);">Genel Toplam:</td>
+                        <td style="text-align: right; font-weight: 700; font-size: 1.1rem; color: var(--success-700);" id="genelToplam">₺0,00</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module">
+import { init, SatisFaturalari, Musteriler, Urunler } from '{{ url_for("static", filename="js/db.js") }}';
+
+function paraFormat(tutar) {
+    return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(tutar || 0);
+}
+
+function tarihFormat(tarih) {
+    return tarih ? new Date(tarih).toLocaleDateString('tr-TR') : '-';
+}
+
+function durumBadge(durum) {
+    const renkler = {
+        'tamamlandi': 'success',
+        'beklemede': 'warning',
+        'iptal': 'danger'
+    };
+    const etiketler = {
+        'tamamlandi': 'Tamamlandı',
+        'beklemede': 'Beklemede',
+        'iptal': 'İptal'
+    };
+    return `<span class="badge badge-${renkler[durum] || 'secondary'}">${etiketler[durum] || durum}</span>`;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // URL'den fatura ID'sini al
+    const pathParts = window.location.pathname.split('/');
+    const faturaId = pathParts[pathParts.length - 1];
+    
+    if (!faturaId) {
+        alert('Fatura bulunamadı');
+        window.location.href = '{{ url_for("satis.liste") }}';
+        return;
+    }
+    
+    try {
+        // Müşteri ve ürün bilgilerini yükle
+        const [musteriler, urunler] = await Promise.all([
+            Musteriler.hepsiniGetir(),
+            Urunler.hepsiniGetir()
+        ]);
+        
+        const musteriMap = {};
+        musteriler.forEach(m => musteriMap[m.id] = m.unvan);
+        
+        const urunMap = {};
+        urunler.forEach(u => urunMap[u.id] = u.ad);
+        
+        // Fatura bilgilerini getir
+        const fatura = await SatisFaturalari.getir(faturaId);
+        
+        if (!fatura) {
+            alert('Fatura bulunamadı');
+            window.location.href = '{{ url_for("satis.liste") }}';
+            return;
+        }
+        
+        // Fatura bilgilerini doldur
+        document.getElementById('faturaNo').textContent = `Fatura No: ${fatura.fatura_no || '-'}`;
+        document.getElementById('detayFaturaNo').textContent = fatura.fatura_no || '-';
+        document.getElementById('detayTarih').textContent = tarihFormat(fatura.fatura_tarihi);
+        document.getElementById('detayMusteri').textContent = musteriMap[fatura.musteri_id] || fatura.musteri_adi || '-';
+        document.getElementById('detayDurum').innerHTML = durumBadge(fatura.durum);
+        document.getElementById('detayAciklama').textContent = fatura.aciklama || '-';
+        
+        // Fatura kalemlerini doldur
+        const kalemler = fatura.kalemler || [];
+        document.getElementById('faturaKalemleri').innerHTML = kalemler.length > 0
+            ? kalemler.map((k, i) => `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td>${urunMap[k.urun_id] || k.urun_adi || '-'}</td>
+                    <td style="text-align: right;">${k.miktar}</td>
+                    <td>${k.birim || 'Adet'}</td>
+                    <td style="text-align: right;">₺${paraFormat(k.birim_fiyat)}</td>
+                    <td style="text-align: right;">%${k.kdv_orani || 0}</td>
+                    <td style="text-align: right;">₺${paraFormat(k.kdv_tutari)}</td>
+                    <td style="text-align: right;">₺${paraFormat(k.toplam)}</td>
+                </tr>
+            `).join('')
+            : '<tr><td colspan="8" style="text-align: center; color: var(--gray-500);">Fatura kalemi yok</td></tr>';
+        
+        // Toplamları doldur
+        document.getElementById('araToplam').textContent = `₺${paraFormat(fatura.ara_toplam)}`;
+        document.getElementById('toplamKdv').textContent = `₺${paraFormat(fatura.kdv_toplam)}`;
+        document.getElementById('genelToplam').textContent = `₺${paraFormat(fatura.genel_toplam)}`;
+        
+    } catch (error) {
+        console.error('Fatura yüklenirken hata:', error);
+        alert('Fatura yüklenirken bir hata oluştu');
+    }
+});
+
+window.yazdir = function() {
+    window.print();
+};
+</script>
+{% endblock %}

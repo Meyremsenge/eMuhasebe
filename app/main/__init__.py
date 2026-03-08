@@ -1,0 +1,20 @@
+﻿"""
+eMuhasebe Pro - Ana Modül
+Dashboard ve genel sayfalar
+Firebase Realtime Database ile çalışır
+"""
+from flask import Blueprint, render_template
+
+main_bp = Blueprint('main', __name__)
+
+
+@main_bp.route('/')
+def index():
+    """Ana sayfa - Dashboard (Firebase Realtime)"""
+    return render_template('main/index_firebase.html')
+
+
+@main_bp.route('/demo-yukle')
+def demo_yukle():
+    """Demo veri yükleme sayfası"""
+    return render_template('demo_yukle.html')

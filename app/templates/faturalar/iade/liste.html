@@ -1,0 +1,166 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}İade Faturaları - eMuhasebe Pro{% endblock %}
+
+{% block page_title %}İade Faturaları{% endblock %}
+{% block page_subtitle %}Alış ve satış iade faturaları{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('iade.yeni') }}" class="btn btn-secondary" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border: none; color: white;">
+    <i class="fas fa-plus"></i>
+    Yeni İade Faturası
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filtreler -->
+<div class="filter-bar">
+    <form method="GET" action="{{ url_for('iade.liste') }}" style="display: flex; flex-wrap: wrap; gap: 1rem; width: 100%; align-items: flex-end;">
+        <div class="form-group">
+            <label class="form-label">Arama</label>
+            <input type="text" name="arama" class="form-control" placeholder="Fatura no veya firma..." value="{{ arama }}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">İade Türü</label>
+            <select name="iade_turu" class="form-control form-select">
+                <option value="">Tümü</option>
+                <option value="alis_iade" {% if iade_turu == 'alis_iade' %}selected{% endif %}>Alış İadesi</option>
+                <option value="satis_iade" {% if iade_turu == 'satis_iade' %}selected{% endif %}>Satış İadesi</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Durum</label>
+            <select name="durum" class="form-control form-select">
+                <option value="">Tümü</option>
+                <option value="beklemede" {% if durum == 'beklemede' %}selected{% endif %}>Beklemede</option>
+                <option value="tamamlandi" {% if durum == 'tamamlandi' %}selected{% endif %}>Tamamlandı</option>
+                <option value="iptal" {% if durum == 'iptal' %}selected{% endif %}>İptal</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i>
+                Filtrele
+            </button>
+            <a href="{{ url_for('iade.liste') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i>
+                Temizle
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Fatura Listesi -->
+<div class="card">
+    <div class="card-body" style="padding: 0;">
+        {% if faturalar.items %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Fatura No</th>
+                        <th>Tarih</th>
+                        <th>Firma</th>
+                        <th>İade Türü</th>
+                        <th>Referans</th>
+                        <th>Tutar</th>
+                        <th>Durum</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fatura in faturalar.items %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('iade.detay', id=fatura.id) }}" style="font-weight: 600;">
+                                {{ fatura.fatura_no }}
+                            </a>
+                        </td>
+                        <td>{{ fatura.fatura_tarihi.strftime('%d.%m.%Y') }}</td>
+                        <td>{{ fatura.firma.unvan }}</td>
+                        <td>
+                            {% if fatura.iade_turu == 'alis_iade' %}
+                                <span class="badge badge-primary">Alış İadesi</span>
+                            {% else %}
+                                <span class="badge badge-success">Satış İadesi</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ fatura.referans_fatura_no or '-' }}</td>
+                        <td style="font-weight: 600; color: var(--warning-600);">₺{{ "{:,.2f}".format(fatura.genel_toplam) }}</td>
+                        <td>
+                            {% if fatura.durum == 'beklemede' %}
+                                <span class="badge badge-warning">Beklemede</span>
+                            {% elif fatura.durum == 'tamamlandi' %}
+                                <span class="badge badge-success">Tamamlandı</span>
+                            {% else %}
+                                <span class="badge badge-danger">İptal</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{{ url_for('iade.detay', id=fatura.id) }}" class="btn btn-sm btn-outline" title="Görüntüle">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ url_for('iade.duzenle', id=fatura.id) }}" class="btn btn-sm btn-secondary" title="Düzenle">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form id="delete-form-{{ fatura.id }}" action="{{ url_for('iade.sil', id=fatura.id) }}" method="POST" style="display: none;">
+                                </form>
+                                <button type="button" onclick="confirmDelete('delete-form-{{ fatura.id }}')" class="btn btn-sm btn-danger" title="Sil">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Sayfalama -->
+        {% if faturalar.pages > 1 %}
+        <div class="pagination">
+            {% if faturalar.has_prev %}
+                <a href="{{ url_for('iade.liste', sayfa=faturalar.prev_num, durum=durum, iade_turu=iade_turu, arama=arama) }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            {% else %}
+                <span class="disabled"><i class="fas fa-chevron-left"></i></span>
+            {% endif %}
+            
+            {% for page in faturalar.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page %}
+                    {% if page == faturalar.page %}
+                        <span class="active">{{ page }}</span>
+                    {% else %}
+                        <a href="{{ url_for('iade.liste', sayfa=page, durum=durum, iade_turu=iade_turu, arama=arama) }}">{{ page }}</a>
+                    {% endif %}
+                {% else %}
+                    <span>...</span>
+                {% endif %}
+            {% endfor %}
+            
+            {% if faturalar.has_next %}
+                <a href="{{ url_for('iade.liste', sayfa=faturalar.next_num, durum=durum, iade_turu=iade_turu, arama=arama) }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            {% else %}
+                <span class="disabled"><i class="fas fa-chevron-right"></i></span>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-undo-alt empty-state-icon"></i>
+            <h3>Henüz iade faturası yok</h3>
+            <p>İlk iade faturanızı oluşturmak için aşağıdaki butona tıklayın</p>
+            <a href="{{ url_for('iade.yeni') }}" class="btn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+                <i class="fas fa-plus"></i>
+                Yeni İade Faturası
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}{{ fatura.fatura_no }} - eMuhasebe Pro{% endblock %}
+
+{% block page_title %}Alış Faturası{% endblock %}
+{% block page_subtitle %}{{ fatura.fatura_no }}{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('alis.liste') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i>
+    Listeye Dön
+</a>
+<a href="{{ url_for('alis.duzenle', id=fatura.id) }}" class="btn btn-primary">
+    <i class="fas fa-edit"></i>
+    Düzenle
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Fatura Başlık -->
+    <div class="invoice-header">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h1>ALIŞ FATURASI</h1>
+                <div class="invoice-number">{{ fatura.fatura_no }}</div>
+            </div>
+            <div style="text-align: right;">
+                {% if fatura.durum == 'beklemede' %}
+                    <span class="badge badge-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Beklemede</span>
+                {% elif fatura.durum == 'odendi' %}
+                    <span class="badge badge-success" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Ödendi</span>
+                {% else %}
+                    <span class="badge badge-danger" style="font-size: 0.9rem; padding: 0.5rem 1rem;">İptal</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Fatura Meta Bilgileri -->
+    <div class="invoice-meta">
+        <div class="invoice-meta-item">
+            <label>Tedarikçi</label>
+            <span>{{ fatura.tedarikci.unvan }}</span>
+        </div>
+        <div class="invoice-meta-item">
+            <label>Vergi No</label>
+            <span>{{ fatura.tedarikci.vergi_no or '-' }}</span>
+        </div>
+        <div class="invoice-meta-item">
+            <label>Fatura Tarihi</label>
+            <span>{{ fatura.fatura_tarihi.strftime('%d.%m.%Y') }}</span>
+        </div>
+        <div class="invoice-meta-item">
+            <label>Vade Tarihi</label>
+            <span>{{ fatura.vade_tarihi.strftime('%d.%m.%Y') if fatura.vade_tarihi else '-' }}</span>
+        </div>
+    </div>
+    
+    <!-- Fatura Kalemleri -->
+    <div class="invoice-items">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Açıklama</th>
+                        <th style="text-align: right;">Miktar</th>
+                        <th style="text-align: right;">Birim Fiyat</th>
+                        <th style="text-align: right;">KDV %</th>
+                        <th style="text-align: right;">KDV Tutar</th>
+                        <th style="text-align: right;">Toplam</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for kalem in fatura.kalemler %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ kalem.aciklama }}</td>
+                        <td style="text-align: right;">{{ kalem.miktar }} {{ kalem.birim }}</td>
+                        <td style="text-align: right;">₺{{ "{:,.2f}".format(kalem.birim_fiyat) }}</td>
+                        <td style="text-align: right;">%{{ kalem.kdv_orani }}</td>
+                        <td style="text-align: right;">₺{{ "{:,.2f}".format(kalem.kdv_tutar) }}</td>
+                        <td style="text-align: right; font-weight: 600;">₺{{ "{:,.2f}".format(kalem.genel_toplam) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Toplamlar -->
+    <div class="invoice-totals">
+        <table class="invoice-totals-table">
+            <tr>
+                <td>Ara Toplam</td>
+                <td>₺{{ "{:,.2f}".format(fatura.ara_toplam) }}</td>
+            </tr>
+            <tr>
+                <td>KDV Toplam</td>
+                <td>₺{{ "{:,.2f}".format(fatura.kdv_toplam) }}</td>
+            </tr>
+            {% if fatura.indirim_toplam > 0 %}
+            <tr>
+                <td>İndirim</td>
+                <td>-₺{{ "{:,.2f}".format(fatura.indirim_toplam) }}</td>
+            </tr>
+            {% endif %}
+            <tr class="total-row">
+                <td>Genel Toplam</td>
+                <td>₺{{ "{:,.2f}".format(fatura.genel_toplam) }}</td>
+            </tr>
+        </table>
+    </div>
+    
+    {% if fatura.aciklama %}
+    <div class="card-footer">
+        <strong>Açıklama:</strong> {{ fatura.aciklama }}
+    </div>
+    {% endif %}
+</div>
+
+<!-- İşlem Butonları -->
+<div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+    <button type="button" onclick="window.print()" class="btn btn-secondary">
+        <i class="fas fa-print"></i>
+        Yazdır
+    </button>
+    <form id="delete-form" action="{{ url_for('alis.sil', id=fatura.id) }}" method="POST" style="display: inline;">
+    </form>
+    <button type="button" onclick="confirmDelete('delete-form', 'Bu faturayı silmek istediğinizden emin misiniz?')" class="btn btn-danger">
+        <i class="fas fa-trash"></i>
+        Sil
+    </button>
+</div>
+{% endblock %}

@@ -1,0 +1,255 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}{{ 'Fatura Düzenle' if fatura else 'Yeni Alış Faturası' }} - eMuhasebe Pro{% endblock %}
+
+{% block page_title %}{{ 'Fatura Düzenle' if fatura else 'Yeni Alış Faturası' }}{% endblock %}
+{% block page_subtitle %}{{ fatura.fatura_no if fatura else 'Tedarikçiden alış faturası oluşturun' }}{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('alis.liste') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i>
+    Listeye Dön
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('alis.duzenle', id=fatura.id) if fatura else url_for('alis.yeni') }}">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-file-invoice" style="color: var(--primary-500); margin-right: 0.5rem;"></i>
+                Fatura Bilgileri
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Fatura No</label>
+                    <input type="text" name="fatura_no" class="form-control" 
+                           value="{{ fatura.fatura_no if fatura else yeni_fatura_no }}" 
+                           {% if fatura %}readonly{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label class="form-label required">Fatura Tarihi</label>
+                    <input type="date" name="fatura_tarihi" class="form-control" 
+                           value="{{ fatura.fatura_tarihi.strftime('%Y-%m-%d') if fatura else bugun }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Vade Tarihi</label>
+                    <input type="date" name="vade_tarihi" class="form-control" 
+                           value="{{ fatura.vade_tarihi.strftime('%Y-%m-%d') if fatura and fatura.vade_tarihi else '' }}">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Tedarikçi</label>
+                    <select name="tedarikci_id" class="form-control form-select" required>
+                        <option value="">-- Tedarikçi Seçin --</option>
+                        {% for t in tedarikciler %}
+                        <option value="{{ t.id }}" {% if fatura and fatura.tedarikci_id == t.id %}selected{% endif %}>
+                            {{ t.unvan }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if fatura %}
+                <div class="form-group">
+                    <label class="form-label">Durum</label>
+                    <select name="durum" class="form-control form-select">
+                        <option value="beklemede" {% if fatura.durum == 'beklemede' %}selected{% endif %}>Beklemede</option>
+                        <option value="odendi" {% if fatura.durum == 'odendi' %}selected{% endif %}>Ödendi</option>
+                        <option value="iptal" {% if fatura.durum == 'iptal' %}selected{% endif %}>İptal</option>
+                    </select>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Açıklama</label>
+                <textarea name="aciklama" class="form-control" rows="2" placeholder="Fatura ile ilgili notlar...">{{ fatura.aciklama if fatura else '' }}</textarea>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Fatura Kalemleri -->
+    <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-list" style="color: var(--primary-500); margin-right: 0.5rem;"></i>
+                Fatura Kalemleri
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="invoice-items-form" id="invoice-items">
+                <!-- Başlık Satırı -->
+                <div class="invoice-item-row" style="background: var(--primary-100); font-weight: 600; font-size: 0.8rem;">
+                    <div>Açıklama</div>
+                    <div>Miktar</div>
+                    <div>Birim Fiyat</div>
+                    <div>KDV %</div>
+                    <div>Toplam</div>
+                    <div></div>
+                </div>
+                
+                {% if fatura %}
+                    {% for kalem in fatura.kalemler %}
+                    <div class="invoice-item-row" data-index="{{ loop.index0 }}">
+                        <input type="text" name="kalem_aciklama[]" class="form-control" placeholder="Ürün/Hizmet açıklaması" value="{{ kalem.aciklama }}" required>
+                        <input type="number" name="kalem_miktar[]" class="form-control kalem-miktar" step="0.01" min="0" placeholder="0" value="{{ kalem.miktar }}" required>
+                        <input type="number" name="kalem_fiyat[]" class="form-control kalem-fiyat" step="0.01" min="0" placeholder="0.00" value="{{ kalem.birim_fiyat }}" required>
+                        <select name="kalem_kdv[]" class="form-control form-select kalem-kdv">
+                            <option value="0" {% if kalem.kdv_orani == 0 %}selected{% endif %}>%0</option>
+                            <option value="1" {% if kalem.kdv_orani == 1 %}selected{% endif %}>%1</option>
+                            <option value="10" {% if kalem.kdv_orani == 10 %}selected{% endif %}>%10</option>
+                            <option value="20" {% if kalem.kdv_orani == 20 %}selected{% endif %}>%20</option>
+                        </select>
+                        <input type="text" class="form-control kalem-toplam" readonly value="{{ "{:,.2f}".format(kalem.genel_toplam) }}">
+                        <button type="button" class="btn-remove-item" onclick="removeItem(this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Boş satır -->
+                    <div class="invoice-item-row" data-index="0">
+                        <input type="text" name="kalem_aciklama[]" class="form-control" placeholder="Ürün/Hizmet açıklaması" required>
+                        <input type="number" name="kalem_miktar[]" class="form-control kalem-miktar" step="0.01" min="0" placeholder="0" value="1" required>
+                        <input type="number" name="kalem_fiyat[]" class="form-control kalem-fiyat" step="0.01" min="0" placeholder="0.00" required>
+                        <select name="kalem_kdv[]" class="form-control form-select kalem-kdv">
+                            <option value="0">%0</option>
+                            <option value="1">%1</option>
+                            <option value="10">%10</option>
+                            <option value="20" selected>%20</option>
+                        </select>
+                        <input type="text" class="form-control kalem-toplam" readonly value="0.00">
+                        <button type="button" class="btn-remove-item" onclick="removeItem(this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <button type="button" class="btn-add-item" onclick="addItem()">
+                <i class="fas fa-plus"></i>
+                Yeni Kalem Ekle
+            </button>
+            
+            <!-- Toplamlar -->
+            <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+                <div style="width: 300px;">
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-200);">
+                        <span>Ara Toplam:</span>
+                        <span id="ara-toplam" style="font-weight: 500;">₺0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-200);">
+                        <span>KDV Toplam:</span>
+                        <span id="kdv-toplam" style="font-weight: 500;">₺0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 1rem 0; font-size: 1.25rem; font-weight: 700; color: var(--primary-700);">
+                        <span>Genel Toplam:</span>
+                        <span id="genel-toplam">₺0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Butonlar -->
+    <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+        <a href="{{ url_for('alis.liste') }}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-times"></i>
+            İptal
+        </a>
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-save"></i>
+            {{ 'Güncelle' if fatura else 'Kaydet' }}
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Kalem sayısı - sayfa yüklenirken DOM'dan hesaplanır
+    let itemIndex = document.querySelectorAll('.invoice-item-row[data-index]').length || 1;
+    
+    function addItem() {
+        const container = document.getElementById('invoice-items');
+        const html = `
+            <div class="invoice-item-row" data-index="${itemIndex}">
+                <input type="text" name="kalem_aciklama[]" class="form-control" placeholder="Ürün/Hizmet açıklaması" required>
+                <input type="number" name="kalem_miktar[]" class="form-control kalem-miktar" step="0.01" min="0" placeholder="0" value="1" required>
+                <input type="number" name="kalem_fiyat[]" class="form-control kalem-fiyat" step="0.01" min="0" placeholder="0.00" required>
+                <select name="kalem_kdv[]" class="form-control form-select kalem-kdv">
+                    <option value="0">%0</option>
+                    <option value="1">%1</option>
+                    <option value="10">%10</option>
+                    <option value="20" selected>%20</option>
+                </select>
+                <input type="text" class="form-control kalem-toplam" readonly value="0.00">
+                <button type="button" class="btn-remove-item" onclick="removeItem(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+        itemIndex++;
+        bindCalculations();
+    }
+    
+    function removeItem(btn) {
+        const rows = document.querySelectorAll('.invoice-item-row[data-index]');
+        if (rows.length > 1) {
+            btn.closest('.invoice-item-row').remove();
+            calculateTotals();
+        }
+    }
+    
+    function calculateRow(row) {
+        const miktar = parseFloat(row.querySelector('.kalem-miktar').value) || 0;
+        const fiyat = parseFloat(row.querySelector('.kalem-fiyat').value) || 0;
+        const kdv = parseFloat(row.querySelector('.kalem-kdv').value) || 0;
+        
+        const araToplam = miktar * fiyat;
+        const kdvTutar = araToplam * (kdv / 100);
+        const toplam = araToplam + kdvTutar;
+        
+        row.querySelector('.kalem-toplam').value = toplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        return { araToplam, kdvTutar, toplam };
+    }
+    
+    function calculateTotals() {
+        let araToplam = 0;
+        let kdvToplam = 0;
+        let genelToplam = 0;
+        
+        document.querySelectorAll('.invoice-item-row[data-index]').forEach(row => {
+            const result = calculateRow(row);
+            araToplam += result.araToplam;
+            kdvToplam += result.kdvTutar;
+            genelToplam += result.toplam;
+        });
+        
+        document.getElementById('ara-toplam').textContent = '₺' + araToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('kdv-toplam').textContent = '₺' + kdvToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('genel-toplam').textContent = '₺' + genelToplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    
+    function bindCalculations() {
+        document.querySelectorAll('.kalem-miktar, .kalem-fiyat, .kalem-kdv').forEach(input => {
+            input.removeEventListener('input', calculateTotals);
+            input.removeEventListener('change', calculateTotals);
+            input.addEventListener('input', calculateTotals);
+            input.addEventListener('change', calculateTotals);
+        });
+    }
+    
+    // Sayfa yüklendiğinde
+    document.addEventListener('DOMContentLoaded', function() {
+        bindCalculations();
+        calculateTotals();
+    });
+</script>
+{% endblock %}

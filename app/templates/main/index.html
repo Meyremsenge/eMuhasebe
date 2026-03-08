@@ -1,0 +1,233 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Dashboard - eMuhasebe Pro{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Genel bakış ve özet bilgiler{% endblock %}
+
+{% block content %}
+<!-- İstatistik Kartları -->
+<div class="dashboard-stats">
+    <!-- Alış Faturaları -->
+    <div class="stat-card fade-in">
+        <div class="stat-icon blue">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ toplam_alis }}</h3>
+            <p>Alış Faturası</p>
+        </div>
+    </div>
+    
+    <!-- Satış Faturaları -->
+    <div class="stat-card fade-in">
+        <div class="stat-icon green">
+            <i class="fas fa-cash-register"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ toplam_satis }}</h3>
+            <p>Satış Faturası</p>
+        </div>
+    </div>
+    
+    <!-- İade Faturaları -->
+    <div class="stat-card fade-in">
+        <div class="stat-icon orange">
+            <i class="fas fa-undo-alt"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ toplam_iade }}</h3>
+            <p>İade Faturası</p>
+        </div>
+    </div>
+    
+    <!-- Toplam Müşteri -->
+    <div class="stat-card fade-in">
+        <div class="stat-icon red">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ toplam_musteri }}</h3>
+            <p>Müşteri / Tedarikçi</p>
+        </div>
+    </div>
+</div>
+
+<!-- Aylık Özet -->
+<div class="dashboard-stats" style="margin-bottom: 2rem;">
+    <div class="stat-card fade-in" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white;">
+        <div class="stat-icon" style="background: rgba(255,255,255,0.2); color: white;">
+            <i class="fas fa-arrow-down"></i>
+        </div>
+        <div class="stat-content">
+            <h3>₺{{ "{:,.2f}".format(aylik_alis_toplam) }}</h3>
+            <p>Bu Ay Toplam Alış</p>
+        </div>
+    </div>
+    
+    <div class="stat-card fade-in" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white;">
+        <div class="stat-icon" style="background: rgba(255,255,255,0.2); color: white;">
+            <i class="fas fa-arrow-up"></i>
+        </div>
+        <div class="stat-content">
+            <h3>₺{{ "{:,.2f}".format(aylik_satis_toplam) }}</h3>
+            <p>Bu Ay Toplam Satış</p>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard Grid -->
+<div class="dashboard-grid">
+    <!-- Son Alış Faturaları -->
+    <div class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-shopping-cart" style="color: var(--primary-500); margin-right: 0.5rem;"></i>
+                Son Alış Faturaları
+            </h3>
+            <a href="{{ url_for('alis.liste') }}" class="btn btn-sm btn-outline">
+                Tümünü Gör
+            </a>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            {% if son_alis_faturalar %}
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Fatura No</th>
+                            <th>Tedarikçi</th>
+                            <th>Tutar</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fatura in son_alis_faturalar %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('alis.detay', id=fatura.id) }}">{{ fatura.fatura_no }}</a>
+                            </td>
+                            <td>{{ fatura.tedarikci.unvan }}</td>
+                            <td>₺{{ "{:,.2f}".format(fatura.genel_toplam) }}</td>
+                            <td>
+                                {% if fatura.durum == 'beklemede' %}
+                                    <span class="badge badge-warning">Beklemede</span>
+                                {% elif fatura.durum == 'odendi' %}
+                                    <span class="badge badge-success">Ödendi</span>
+                                {% else %}
+                                    <span class="badge badge-danger">İptal</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-file-invoice empty-state-icon"></i>
+                <h3>Henüz fatura yok</h3>
+                <p>İlk alış faturanızı oluşturun</p>
+                <a href="{{ url_for('alis.yeni') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Yeni Fatura
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Son Satış Faturaları -->
+    <div class="card fade-in">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-cash-register" style="color: var(--success-500); margin-right: 0.5rem;"></i>
+                Son Satış Faturaları
+            </h3>
+            <a href="{{ url_for('satis.liste') }}" class="btn btn-sm btn-outline">
+                Tümünü Gör
+            </a>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            {% if son_satis_faturalar %}
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Fatura No</th>
+                            <th>Müşteri</th>
+                            <th>Tutar</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fatura in son_satis_faturalar %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('satis.detay', id=fatura.id) }}">{{ fatura.fatura_no }}</a>
+                            </td>
+                            <td>{{ fatura.musteri.unvan }}</td>
+                            <td>₺{{ "{:,.2f}".format(fatura.genel_toplam) }}</td>
+                            <td>
+                                {% if fatura.durum == 'beklemede' %}
+                                    <span class="badge badge-warning">Beklemede</span>
+                                {% elif fatura.durum == 'tahsil_edildi' %}
+                                    <span class="badge badge-success">Tahsil Edildi</span>
+                                {% else %}
+                                    <span class="badge badge-danger">İptal</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-file-invoice-dollar empty-state-icon"></i>
+                <h3>Henüz fatura yok</h3>
+                <p>İlk satış faturanızı oluşturun</p>
+                <a href="{{ url_for('satis.yeni') }}" class="btn btn-success">
+                    <i class="fas fa-plus"></i>
+                    Yeni Fatura
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Hızlı İşlemler -->
+<div class="card fade-in" style="margin-top: 1.5rem;">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-bolt" style="color: var(--warning-500); margin-right: 0.5rem;"></i>
+            Hızlı İşlemler
+        </h3>
+    </div>
+    <div class="card-body">
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+            <a href="{{ url_for('alis.yeni') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus"></i>
+                Yeni Alış Faturası
+            </a>
+            <a href="{{ url_for('satis.yeni') }}" class="btn btn-success btn-lg">
+                <i class="fas fa-plus"></i>
+                Yeni Satış Faturası
+            </a>
+            <a href="{{ url_for('iade.yeni') }}" class="btn btn-secondary btn-lg">
+                <i class="fas fa-undo-alt"></i>
+                Yeni İade Faturası
+            </a>
+            <a href="{{ url_for('musteriler.yeni') }}" class="btn btn-outline btn-lg">
+                <i class="fas fa-user-plus"></i>
+                Yeni Müşteri / Tedarikçi
+            </a>
+            <a href="{{ url_for('urunler.yeni') }}" class="btn btn-outline btn-lg">
+                <i class="fas fa-box"></i>
+                Yeni Ürün / Hizmet
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

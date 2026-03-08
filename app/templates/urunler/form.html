@@ -1,0 +1,118 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}{{ 'Düzenle' if urun else 'Yeni Ürün' }} - eMuhasebe Pro{% endblock %}
+
+{% block page_title %}{{ 'Ürün Düzenle' if urun else 'Yeni Ürün / Hizmet' }}{% endblock %}
+{% block page_subtitle %}{{ urun.kod ~ ' - ' ~ urun.ad if urun else 'Yeni ürün veya hizmet tanımlayın' }}{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('urunler.liste') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i>
+    Listeye Dön
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('urunler.duzenle', id=urun.id) if urun else url_for('urunler.yeni') }}">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-box" style="color: var(--primary-500); margin-right: 0.5rem;"></i>
+                Ürün / Hizmet Bilgileri
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label required">Ürün Kodu</label>
+                    <input type="text" name="kod" class="form-control" 
+                           value="{{ urun.kod if urun else yeni_kod }}" 
+                           {% if urun %}readonly{% endif %}
+                           placeholder="URN000001">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label class="form-label required">Ürün / Hizmet Adı</label>
+                    <input type="text" name="ad" class="form-control" 
+                           value="{{ urun.ad if urun else '' }}" 
+                           placeholder="Ürün veya hizmet adı" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Açıklama</label>
+                <textarea name="aciklama" class="form-control" rows="2" 
+                          placeholder="Ürün/hizmet açıklaması">{{ urun.aciklama if urun else '' }}</textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Birim</label>
+                    <select name="birim" class="form-control form-select">
+                        <option value="Adet" {% if urun and urun.birim == 'Adet' %}selected{% endif %}>Adet</option>
+                        <option value="Kg" {% if urun and urun.birim == 'Kg' %}selected{% endif %}>Kg</option>
+                        <option value="Lt" {% if urun and urun.birim == 'Lt' %}selected{% endif %}>Lt</option>
+                        <option value="Mt" {% if urun and urun.birim == 'Mt' %}selected{% endif %}>Mt</option>
+                        <option value="M²" {% if urun and urun.birim == 'M²' %}selected{% endif %}>M²</option>
+                        <option value="M³" {% if urun and urun.birim == 'M³' %}selected{% endif %}>M³</option>
+                        <option value="Paket" {% if urun and urun.birim == 'Paket' %}selected{% endif %}>Paket</option>
+                        <option value="Kutu" {% if urun and urun.birim == 'Kutu' %}selected{% endif %}>Kutu</option>
+                        <option value="Saat" {% if urun and urun.birim == 'Saat' %}selected{% endif %}>Saat</option>
+                        <option value="Gün" {% if urun and urun.birim == 'Gün' %}selected{% endif %}>Gün</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">KDV Oranı</label>
+                    <select name="kdv_orani" class="form-control form-select">
+                        <option value="0" {% if urun and urun.kdv_orani == 0 %}selected{% endif %}>%0</option>
+                        <option value="1" {% if urun and urun.kdv_orani == 1 %}selected{% endif %}>%1</option>
+                        <option value="10" {% if urun and urun.kdv_orani == 10 %}selected{% endif %}>%10</option>
+                        <option value="20" {% if (not urun) or urun.kdv_orani == 20 %}selected{% endif %}>%20</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Stok Miktarı</label>
+                    <input type="number" name="stok_miktari" class="form-control" 
+                           value="{{ urun.stok_miktari if urun else 0 }}" 
+                           step="0.01" min="0">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Alış Fiyatı (₺)</label>
+                    <input type="number" name="alis_fiyat" class="form-control" 
+                           value="{{ urun.alis_fiyat if urun else '' }}" 
+                           step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Satış Fiyatı (₺)</label>
+                    <input type="number" name="satis_fiyat" class="form-control" 
+                           value="{{ urun.satis_fiyat if urun else '' }}" 
+                           step="0.01" min="0" placeholder="0.00">
+                </div>
+            </div>
+            
+            {% if urun %}
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="aktif" {% if urun.aktif %}checked{% endif %}>
+                    <span>Aktif Ürün</span>
+                </label>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Butonlar -->
+    <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+        <a href="{{ url_for('urunler.liste') }}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-times"></i>
+            İptal
+        </a>
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-save"></i>
+            {{ 'Güncelle' if urun else 'Kaydet' }}
+        </button>
+    </div>
+</form>
+{% endblock %}
