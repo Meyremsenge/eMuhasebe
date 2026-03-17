@@ -175,8 +175,8 @@ async function initFirebase() {
         // Bağlantı testi - basit bir okuma denemesi yap
         const testRef = ref(firebaseDb, 'connection_test');
         const testPromise = get(testRef);
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Firebase bağlantı zaman aşımı')), 5000)
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Firebase bağlantı zaman aşımı')), 1500)
         );
         
         await Promise.race([testPromise, timeoutPromise]);

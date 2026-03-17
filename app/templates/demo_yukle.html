@@ -123,12 +123,21 @@
             text-decoration: none;
         }
         .back-link:hover { color: #1e293b; }
+        .back-link:hover { color: #1e293b; }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; margin-bottom: 1rem; }
+        .btn-danger:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(239,68,68,0.4); }
+        .warn-box { background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 0.875rem 1rem; margin-bottom: 1rem; color: #92400e; font-size: 0.85rem; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🚀 Demo Veri Yükleyici</h1>
         <p class="subtitle">eMuhasebe Pro için örnek veriler oluşturulacak</p>
+
+        <div class="warn-box">
+            ⚠️ Mevcut verilerin üzerine yazmak için önce <strong>"Veriyi Sıfırla"</strong> butonuna, ardından <strong>"Demo Verileri Yükle"</strong> butonuna basın.
+        </div>
+        <button class="btn btn-danger" onclick="veriSifirla()">🗑️ Mevcut Veriyi Sıfırla</button>
         
         <div class="progress-container">
             <div class="progress-item" id="prog-musteri">
@@ -192,88 +201,122 @@
         </div>
         
         <a href="/" class="back-link">← Ana Sayfaya Dön</a>
-    </div>
 
+    </div>
     <script>
         // ==================== DEMO VERİ ÜRETİCİLER ====================
         const ISIMLER = ["Ahmet", "Mehmet", "Mustafa", "Ali", "Hüseyin", "Hasan", "İbrahim", "Ömer", "Fatma", "Ayşe", "Emine", "Hatice", "Zeynep", "Elif", "Merve", "Esra"];
-        const SOYISIMLER = ["Yılmaz", "Kaya", "Demir", "Çelik", "Şahin", "Yıldız", "Yıldırım", "Öztürk", "Aydın", "Özdemir", "Arslan", "Doğan", "Kılıç", "Aslan", "Çetin", "Koç"];
-        const SEHIRLER = ["İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana", "Konya", "Gaziantep", "Mersin", "Diyarbakır", "Kayseri", "Eskişehir", "Trabzon", "Samsun", "Denizli"];
-        const SEKTORLER = ["İnşaat", "Tekstil", "Gıda", "Otomotiv", "Elektronik", "Mobilya", "Kimya", "Metal", "Plastik", "Ambalaj", "Yazılım", "Danışmanlık", "Lojistik", "Tarım"];
-        const BIRIMLER = ["Adet", "Kutu", "Paket", "Kg", "Metre", "Litre", "Set"];
+
+        // ══════════════════════════════════════════════════════
+        //  SABIT DEMO VERİLER — gerçekçi isimler, dolu alanlar
+        // ══════════════════════════════════════════════════════
+        const SEHIRLER = ["İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana", "Konya", "Gaziantep"];
         const KDV_ORANLARI = [1, 10, 20];
-        
-        const URUNLER_DATA = [
-            { ad: "Laptop", kategori: "Elektronik", alis: 15000, satis: 18000 },
-            { ad: "Monitör", kategori: "Elektronik", alis: 3500, satis: 4500 },
-            { ad: "Klavye", kategori: "Elektronik", alis: 200, satis: 350 },
-            { ad: "Mouse", kategori: "Elektronik", alis: 100, satis: 180 },
-            { ad: "Kulaklık", kategori: "Elektronik", alis: 300, satis: 500 },
-            { ad: "Webcam", kategori: "Elektronik", alis: 400, satis: 600 },
-            { ad: "Kalem Seti", kategori: "Ofis", alis: 25, satis: 45 },
-            { ad: "Defter", kategori: "Ofis", alis: 15, satis: 30 },
-            { ad: "Klasör", kategori: "Ofis", alis: 20, satis: 35 },
-            { ad: "Zımba", kategori: "Ofis", alis: 30, satis: 50 },
-            { ad: "Makas", kategori: "Ofis", alis: 15, satis: 25 },
-            { ad: "Ofis Masası", kategori: "Mobilya", alis: 2000, satis: 3000 },
-            { ad: "Ofis Koltuğu", kategori: "Mobilya", alis: 1500, satis: 2500 },
-            { ad: "Dolap", kategori: "Mobilya", alis: 1200, satis: 1800 },
-            { ad: "Sehpa", kategori: "Mobilya", alis: 400, satis: 700 },
-            { ad: "Kitaplık", kategori: "Mobilya", alis: 800, satis: 1200 },
-            { ad: "Sandalye", kategori: "Mobilya", alis: 300, satis: 500 },
-            { ad: "Antivirüs Lisansı", kategori: "Yazılım", alis: 200, satis: 350 },
-            { ad: "Office Lisansı", kategori: "Yazılım", alis: 800, satis: 1200 },
-            { ad: "ERP Modülü", kategori: "Yazılım", alis: 5000, satis: 8000 },
-            { ad: "Bulut Depolama", kategori: "Yazılım", alis: 100, satis: 200 },
-            { ad: "Printer", kategori: "Elektronik", alis: 1500, satis: 2200 },
-            { ad: "Scanner", kategori: "Elektronik", alis: 800, satis: 1200 },
-            { ad: "UPS", kategori: "Elektronik", alis: 600, satis: 900 },
-            { ad: "Kablo Seti", kategori: "Elektronik", alis: 50, satis: 100 }
+
+        // Sabit ürünler (görsellerden alınan isimler + gerçekçi fiyatlar)
+        const URUNLER_SABIT = [
+            { kod: "ELK-001", ad: "Laptop Dell XPS 15",        birim: "Adet", alis: 28500, satis: 34900, kdv: 20, stok: 45 },
+            { kod: "ELK-002", ad: "iPhone 15 Pro",              birim: "Adet", alis: 52000, satis: 62999, kdv: 20, stok: 30 },
+            { kod: "ELK-003", ad: "Samsung Galaxy S24",         birim: "Adet", alis: 32000, satis: 39900, kdv: 20, stok: 28 },
+            { kod: "ELK-004", ad: "MacBook Air M3",             birim: "Adet", alis: 45000, satis: 54900, kdv: 20, stok: 18 },
+            { kod: "ELK-005", ad: "iPad Pro 12.9",              birim: "Adet", alis: 29000, satis: 35900, kdv: 20, stok: 22 },
+            { kod: "ELK-006", ad: "Apple Watch Ultra",          birim: "Adet", alis: 18000, satis: 22900, kdv: 20, stok: 40 },
+            { kod: "ELK-007", ad: "Sony WH-1000XM5",            birim: "Adet", alis: 4500,  satis: 6299,  kdv: 20, stok: 60 },
+            { kod: "ELK-008", ad: "LG OLED TV 55\"",            birim: "Adet", alis: 22000, satis: 28900, kdv: 20, stok: 15 },
+            { kod: "ELK-009", ad: "Monitör Dell 27\" 4K",       birim: "Adet", alis: 7500,  satis: 9500,  kdv: 20, stok: 35 },
+            { kod: "ELK-010", ad: "Klavye Logitech MX Keys",    birim: "Adet", alis: 1100,  satis: 1599,  kdv: 20, stok: 80 },
+            { kod: "ELK-011", ad: "Mouse Logitech MX Master 3", birim: "Adet", alis: 850,   satis: 1199,  kdv: 20, stok: 90 },
+            { kod: "ELK-012", ad: "Webcam Logitech C920s",      birim: "Adet", alis: 1200,  satis: 1749,  kdv: 20, stok: 55 },
+            { kod: "ELK-013", ad: "Printer HP LaserJet Pro",    birim: "Adet", alis: 4800,  satis: 6200,  kdv: 20, stok: 20 },
+            { kod: "ELK-014", ad: "UPS APC 1500VA",             birim: "Adet", alis: 2800,  satis: 3699,  kdv: 20, stok: 25 },
+            { kod: "ELK-015", ad: "SSD Samsung 1TB",            birim: "Adet", alis: 900,   satis: 1249,  kdv: 20, stok: 120 },
+            { kod: "OFS-001", ad: "Ofis Masası (160cm)",        birim: "Adet", alis: 3200,  satis: 4500,  kdv: 20, stok: 12 },
+            { kod: "OFS-002", ad: "Ofis Koltuğu Ergonomik",     birim: "Adet", alis: 2800,  satis: 3999,  kdv: 20, stok: 18 },
+            { kod: "OFS-003", ad: "Dolap Metal 4 Raflı",        birim: "Adet", alis: 1800,  satis: 2599,  kdv: 20, stok: 10 },
+            { kod: "SFT-001", ad: "Antivirüs Lisansı (1 Yıl)",  birim: "Lisans", alis: 250, satis: 399,   kdv: 20, stok: 200 },
+            { kod: "SFT-002", ad: "Microsoft 365 Business",     birim: "Lisans", alis: 700, satis: 999,   kdv: 20, stok: 150 },
+            { kod: "SFT-003", ad: "Bulut Depolama 1TB/Yıl",     birim: "Lisans", alis: 120, satis: 199,   kdv: 20, stok: 300 },
+            { kod: "TEK-001", ad: "Telefon Santrali IP",         birim: "Adet", alis: 5500, satis: 7200,  kdv: 20, stok: 8 },
+            { kod: "TEK-002", ad: "Network Switch 24 Port",     birim: "Adet", alis: 3200, satis: 4299,  kdv: 20, stok: 14 },
+            { kod: "TEK-003", ad: "WiFi Access Point",          birim: "Adet", alis: 1500, satis: 2099,  kdv: 20, stok: 30 },
+            { kod: "TEK-004", ad: "Güvenlik Kamerası 4K",       birim: "Adet", alis: 1200, satis: 1699,  kdv: 20, stok: 40 }
         ];
+
+        // Sabit müşteri/tedarikçi isimleri
+        const FIRMALAR = [
+            { unvan: "Mega Market Elektronik A.Ş.",   tip: "tedarikci",  sehir: "İstanbul" },
+            { unvan: "Digital Store Teknoloji Ltd.",  tip: "tedarikci",  sehir: "İstanbul" },
+            { unvan: "Tech Dünyası Bilişim A.Ş.",     tip: "tedarikci",  sehir: "Ankara"   },
+            { unvan: "ABC Elektronik Tic. Ltd.",      tip: "tedarikci",  sehir: "İzmir"    },
+            { unvan: "ProTech İthalat A.Ş.",          tip: "tedarikci",  sehir: "Bursa"    },
+            { unvan: "Global Tech Distribütör",       tip: "tedarikci",  sehir: "İstanbul" },
+            { unvan: "TechHub Wholesale Ltd.",        tip: "tedarikci",  sehir: "Ankara"   },
+            { unvan: "Yıldız Teknoloji Tedarik",      tip: "tedarikci",  sehir: "İzmir"    },
+            { unvan: "Özkan Bilişim Çözümleri",       tip: "musteri",    sehir: "İstanbul" },
+            { unvan: "Güven Ofis Sistemleri A.Ş.",    tip: "musteri",    sehir: "Ankara"   },
+            { unvan: "Akın Yazılım ve Danışmanlık",   tip: "musteri",    sehir: "İzmir"    },
+            { unvan: "Başaran Holding İletişim",      tip: "musteri",    sehir: "Bursa"    },
+            { unvan: "Delta Kurumsal Çözümler",       tip: "musteri",    sehir: "Antalya"  },
+            { unvan: "Çelik Mühendislik A.Ş.",        tip: "musteri",    sehir: "Adana"    },
+            { unvan: "İnova Dijital Medya Ltd.",       tip: "musteri",    sehir: "İstanbul" },
+            { unvan: "Kartal Lojistik Hizmetleri",    tip: "musteri",    sehir: "Konya"    },
+            { unvan: "Nur Eğitim Teknolojileri",      tip: "musteri",    sehir: "Gaziantep"},
+            { unvan: "Asya Turizm ve Otelcilik",      tip: "musteri",    sehir: "Antalya"  },
+            { unvan: "Demir İnşaat Malzemeleri",      tip: "her_ikisi",  sehir: "İstanbul" },
+            { unvan: "Koç Teknoloji Sistemleri",      tip: "her_ikisi",  sehir: "Ankara"   },
+            { unvan: "Fırat Medikal Cihazlar",        tip: "musteri",    sehir: "İstanbul" },
+            { unvan: "Yüksel Tarım Makineleri",       tip: "musteri",    sehir: "Konya"    },
+            { unvan: "Doğan Enerji Sistemleri",       tip: "her_ikisi",  sehir: "İzmir"    },
+            { unvan: "Altın Gıda Dağıtım A.Ş.",       tip: "musteri",    sehir: "Adana"    },
+            { unvan: "Pınar Tekstil Sanayi Ltd.",      tip: "musteri",    sehir: "Bursa"    }
+        ];
+        function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
         function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
         function randItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
         function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 5); }
-        function generateVergiNo() { return Array.from({length: 10}, () => rand(0,9)).join(''); }
-        function generatePhone() { 
-            const prefix = randItem(['532', '533', '534', '535', '536', '542', '543', '544', '545']);
-            return `0${prefix} ${rand(100,999)} ${rand(10,99)} ${rand(10,99)}`;
+        function generateVergiNo(seed) {
+            // Tekrarlanmayan vergi no üret
+            const base = String(seed).padStart(3, '0');
+            return `${rand(1,9)}${rand(0,9)}${rand(0,9)}${base}${rand(0,9)}${rand(0,9)}${rand(0,9)}${rand(0,9)}`;
         }
-        function generateDate(daysBack = 365) {
+        function generatePhone(seed) {
+            const prefixes = ['532','533','534','535','536','542','543','544','545'];
+            const p = prefixes[seed % prefixes.length];
+            return `0${p} ${rand(100,999)} ${String(seed*7%100).padStart(2,'0')} ${rand(10,99)}`;
+        }
+        function generateDate(daysBack = 180) {
             const date = new Date();
-            date.setDate(date.getDate() - rand(1, daysBack));
+            date.setDate(date.getDate() - rand(5, daysBack));
             return date.toISOString().split('T')[0];
         }
         function generateFaturaNo(prefix, index) {
             const year = new Date().getFullYear();
-            return `${prefix}${year}-${String(index).padStart(5, '0')}`;
+            return `${prefix}-${year}-${String(index).padStart(4, '0')}`;
         }
+        // ==================== VERİ OLUŞTURUCULAR ====================
 
         // ==================== VERİ OLUŞTURUCULAR ====================
         function createMusteriler() {
             const musteriler = {};
-            const tipler = ["musteri", "tedarikci", "her_ikisi"];
+            const cadde = ['Atatürk','Cumhuriyet','İstiklal','Fatih','Mevlana','Bağdat','Halaskargazi'];
             
-            for (let i = 1; i <= 25; i++) {
-                const id = `musteri_${i}`;
-                const isim = randItem(ISIMLER);
-                const soyisim = randItem(SOYISIMLER);
-                const sektor = randItem(SEKTORLER);
-                const sehir = randItem(SEHIRLER);
-                const unvan = Math.random() > 0.3 
-                    ? `${isim} ${soyisim} ${sektor} Ltd. Şti.`
-                    : `${isim} ${soyisim}`;
+            for (let i = 0; i < 25; i++) {
+                const id = `musteri_${i + 1}`;
+                const firma = FIRMALAR[i];
+                const unvanSlug = firma.unvan.split(' ')[0].toLowerCase().replace(/ş/g,'s').replace(/ç/g,'c').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ı/g,'i');
+                const domainlar = ['gmail.com','outlook.com','firma.com.tr','info.com.tr','mail.com'];
                 
                 musteriler[id] = {
                     id,
-                    unvan,
-                    vergi_no: generateVergiNo(),
-                    vergi_dairesi: `${sehir} Vergi Dairesi`,
-                    adres: `${randItem(['Atatürk', 'Cumhuriyet', 'İstiklal', 'Fatih', 'Mevlana'])} Cad. No:${rand(1,200)} ${sehir}`,
-                    telefon: generatePhone(),
-                    email: `${isim.toLowerCase()}.${soyisim.toLowerCase()}@${randItem(['gmail.com', 'hotmail.com', 'outlook.com', 'firma.com.tr'])}`,
-                    tip: randItem(tipler),
-                    aktif: true,
+                    unvan:          firma.unvan,
+                    vergi_no:       generateVergiNo(i + 1),
+                    vergi_dairesi:  `${firma.sehir} Vergi Dairesi`,
+                    adres:          `${randItem(cadde)} Cad. No:${rand(1,200)} ${firma.sehir}`,
+                    telefon:        generatePhone(i + 1),
+                    email:          `info@${unvanSlug}.${domainlar[i % domainlar.length]}`,
+                    tip:            firma.tip,
+                    aktif:          true,
                     olusturma_tarihi: generateDate(180),
                     guncelleme_tarihi: generateDate(30)
                 };
@@ -283,31 +326,30 @@
 
         function createUrunler() {
             const urunler = {};
-            
-            for (let i = 0; i < 25; i++) {
-                const id = `urun_${i + 1}`;
-                const urunData = URUNLER_DATA[i];
-                const alisFiyat = rand(urunData.alis, Math.floor((urunData.alis + urunData.satis) / 2));
-                const satisFiyat = rand(alisFiyat + Math.floor(alisFiyat * 0.15), urunData.satis + 100);
+            for (let i = 0; i < URUNLER_SABIT.length; i++) {
+                const id    = `urun_${i + 1}`;
+                const u     = URUNLER_SABIT[i];
+                // Fiyatlara ±%5 rastsallık ekle
+                const alis  = Math.round(u.alis  * (1 + (rand(-3, 3) / 100)));
+                const satis = Math.round(u.satis * (1 + (rand(-2, 2) / 100)));
                 
                 urunler[id] = {
                     id,
-                    kod: `URN-${String(i + 1).padStart(4, '0')}`,
-                    ad: `${urunData.ad} - ${urunData.kategori}`,
-                    aciklama: `${urunData.kategori} kategorisinde kaliteli ${urunData.ad.toLowerCase()}`,
-                    birim: randItem(BIRIMLER),
-                    alis_fiyat: alisFiyat,
-                    satis_fiyat: satisFiyat,
-                    kdv_orani: randItem(KDV_ORANLARI),
-                    stok_miktari: rand(10, 500),
-                    aktif: true,
-                    olusturma_tarihi: generateDate(365),
+                    kod:            u.kod,
+                    ad:             u.ad,
+                    aciklama:       `${u.ad} — stokta mevcut, hızlı teslimat`,
+                    birim:          u.birim,
+                    alis_fiyat:     alis,
+                    satis_fiyat:    satis,
+                    kdv_orani:      u.kdv,
+                    stok_miktari:   u.stok,
+                    aktif:          true,
+                    olusturma_tarihi:  generateDate(365),
                     guncelleme_tarihi: generateDate(60)
                 };
             }
             return urunler;
         }
-
         function createAlisFaturalari(musteriler, urunler) {
             const faturalar = {};
             const musteriIds = Object.keys(musteriler).filter(k => 
@@ -361,7 +403,7 @@
                 
                 faturalar[id] = {
                     id,
-                    fatura_no: generateFaturaNo("ALF", i),
+                    fatura_no: generateFaturaNo("AF", i),
                     fatura_tarihi: faturaTarihi,
                     vade_tarihi: vadeDate.toISOString().split('T')[0],
                     tedarikci_id: tedarikciId,
@@ -433,7 +475,7 @@
                 
                 faturalar[id] = {
                     id,
-                    fatura_no: generateFaturaNo("STF", i),
+                    fatura_no: generateFaturaNo("SF", i),
                     fatura_tarihi: faturaTarihi,
                     vade_tarihi: vadeDate.toISOString().split('T')[0],
                     musteri_id: musteriId,
@@ -504,7 +546,7 @@
                 
                 faturalar[id] = {
                     id,
-                    fatura_no: generateFaturaNo("IAD", i),
+                    fatura_no: generateFaturaNo("IF", i),
                     fatura_tarihi: faturaTarihi,
                     firma_id: firmaId,
                     firma_unvan: musteriler[firmaId].unvan,
@@ -523,6 +565,12 @@
         }
 
         // ==================== YÜKLEME FONKSİYONU ====================
+        function veriSifirla() {
+            const keys = ['emuhasebe_musteriler','emuhasebe_urunler','emuhasebe_alis_faturalari','emuhasebe_satis_faturalari','emuhasebe_iade_faturalari','emuhasebe_force_local','emuhasebe_last_sync'];
+            keys.forEach(k => localStorage.removeItem(k));
+            alert('✅ Tüm demo veriler silindi. Şimdi "Demo Verileri Yükle" butonuna basabilirsiniz.');
+        }
+
         function setProgress(id, status) {
             const item = document.querySelector(`#${id} .progress-icon`);
             item.className = `progress-icon ${status}`;
