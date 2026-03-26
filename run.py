@@ -7,7 +7,11 @@ import sys
 import os
 from app import create_app
 
-app = create_app('development')
+# Varsayılan geliştirme modu: değişiklikleri otomatik algıla.
+# Üretimde EMUHASEBE_ENV=production vererek production ayarlarını kullan.
+env_name = os.environ.get('EMUHASEBE_ENV', 'development').lower()
+config_name = 'production' if env_name == 'production' else 'development'
+app = create_app(config_name)
 
 def open_browser():
     """Uygulama başladıktan sonra tarayıcıyı aç"""
@@ -25,5 +29,10 @@ if __name__ == '__main__':
     # Tarayıcıyı 1.5 saniye sonra aç (sunucu başlayana kadar bekle)
     threading.Timer(1.5, open_browser).start()
     
-    # Production modunda çalıştır (debug=False)
-    app.run(debug=False, host='127.0.0.1', port=5000, use_reloader=False)
+    is_dev = config_name == 'development'
+    app.run(
+        debug=is_dev,
+        host='127.0.0.1',
+        port=5000,
+        use_reloader=is_dev
+    )

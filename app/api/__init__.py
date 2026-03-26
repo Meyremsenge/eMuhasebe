@@ -3,17 +3,58 @@ eMuhasebe Pro - API Blueprint
 REST API endpoint'leri — ORM + Repository + Service katmanlı mimarisi kullanır.
 Frontend (Firebase) ile paralel çalışır; backend tarafında da tam CRUD desteği sağlar.
 """
+import os
 from flask import Blueprint, jsonify, request
 from app.services.musteri_service import MusteriService
 from app.services.urun_service import UrunService
 from app.services.fatura_service import FaturaService
+from app import limiter
 
 api_bp = Blueprint('api', __name__)
+
+
+# ══════════════════════ KONFIGÜRASYON ══════════════════════
+
+@api_bp.route('/config/firebase', methods=['GET'])
+def get_firebase_config():
+    """
+    Frontend'in Firebase config'ini güvenli şekilde al.
+    Config ortam değişkenlerinden yüklenir, code'da hardcode edilmez.
+    """
+    
+    # Eğer Firebase devre dışıysa null döndür (localStorage modunda çalışacak)
+    if os.environ.get('FIREBASE_DISABLED') == 'true':
+        return jsonify({'config': None})
+    
+    # Firebase config'i env var'lardan yükle
+    firebase_config = {
+        'apiKey': os.environ.get('VITE_FIREBASE_API_KEY'),
+        'authDomain': os.environ.get('VITE_FIREBASE_AUTH_DOMAIN'),
+        'databaseURL': os.environ.get('VITE_FIREBASE_DATABASE_URL'),
+        'projectId': os.environ.get('VITE_FIREBASE_PROJECT_ID'),
+        'storageBucket': os.environ.get('VITE_FIREBASE_STORAGE_BUCKET'),
+        'messagingSenderId': os.environ.get('VITE_FIREBASE_MESSAGING_SENDER_ID'),
+        'appId': os.environ.get('VITE_FIREBASE_APP_ID'),
+    }
+    
+    # Zorunlu alanlar kontrol et
+    required_fields = ['apiKey', 'authDomain', 'databaseURL', 'projectId']
+    missing_fields = [f for f in required_fields if not firebase_config.get(f)]
+    
+    if missing_fields:
+        # Eksik config varsa, demo modunda çalış
+        return jsonify({
+            'config': None,
+            'warning': f'Firebase config eksik: {", ".join(missing_fields)}'
+        })
+    
+    return jsonify({'config': firebase_config})
 
 
 # ══════════════════════ MÜŞTERİLER ══════════════════════
 
 @api_bp.route('/musteriler', methods=['GET'])
+@limiter.limit("30 per minute")
 def musteriler_list():
     """Tüm müşterileri listeler. ?q= ile arama destekler."""
     keyword = request.args.get('q', '').strip()
@@ -25,6 +66,7 @@ def musteriler_list():
 
 
 @api_bp.route('/musteriler/<int:musteri_id>', methods=['GET'])
+@limiter.limit("60 per minute")
 def musteriler_detail(musteri_id):
     """Tekil müşteri detayı."""
     musteri = MusteriService.get_by_id(musteri_id)
@@ -34,6 +76,7 @@ def musteriler_detail(musteri_id):
 
 
 @api_bp.route('/musteriler', methods=['POST'])
+@limiter.limit("10 per minute")
 def musteriler_create():
     """Yeni müşteri oluşturur."""
     data = request.get_json()
@@ -47,6 +90,7 @@ def musteriler_create():
 
 
 @api_bp.route('/musteriler/<int:musteri_id>', methods=['PUT'])
+@limiter.limit("20 per minute")
 def musteriler_update(musteri_id):
     """Müşteriyi günceller."""
     data = request.get_json()
@@ -58,6 +102,7 @@ def musteriler_update(musteri_id):
 
 
 @api_bp.route('/musteriler/<int:musteri_id>', methods=['DELETE'])
+@limiter.limit("10 per minute")
 def musteriler_delete(musteri_id):
     """Müşteriyi siler."""
     try:
@@ -70,6 +115,7 @@ def musteriler_delete(musteri_id):
 # ══════════════════════ ÜRÜNLER ══════════════════════
 
 @api_bp.route('/urunler', methods=['GET'])
+@limiter.limit("30 per minute")
 def urunler_list():
     """Tüm ürünleri listeler. ?q= ile arama destekler."""
     keyword = request.args.get('q', '').strip()
@@ -81,6 +127,7 @@ def urunler_list():
 
 
 @api_bp.route('/urunler/<int:urun_id>', methods=['GET'])
+@limiter.limit("60 per minute")
 def urunler_detail(urun_id):
     """Tekil ürün detayı."""
     urun = UrunService.get_by_id(urun_id)
@@ -90,6 +137,7 @@ def urunler_detail(urun_id):
 
 
 @api_bp.route('/urunler', methods=['POST'])
+@limiter.limit("10 per minute")
 def urunler_create():
     """Yeni ürün oluşturur."""
     data = request.get_json()
@@ -103,6 +151,7 @@ def urunler_create():
 
 
 @api_bp.route('/urunler/<int:urun_id>', methods=['PUT'])
+@limiter.limit("20 per minute")
 def urunler_update(urun_id):
     """Ürünü günceller."""
     data = request.get_json()
@@ -114,6 +163,7 @@ def urunler_update(urun_id):
 
 
 @api_bp.route('/urunler/<int:urun_id>', methods=['DELETE'])
+@limiter.limit("10 per minute")
 def urunler_delete(urun_id):
     """Ürünü siler."""
     try:
@@ -126,12 +176,14 @@ def urunler_delete(urun_id):
 # ══════════════════════ FATURALAR ══════════════════════
 
 @api_bp.route('/faturalar/ozet', methods=['GET'])
+@limiter.limit("60 per minute")
 def faturalar_summary():
     """Dashboard için fatura özet istatistikleri."""
     return jsonify(FaturaService.get_summary())
 
 
 @api_bp.route('/faturalar/alis', methods=['GET'])
+@limiter.limit("30 per minute")
 def alis_list():
     """Tüm alış faturalarını listeler."""
     faturalar = FaturaService.get_alis_all()
@@ -139,6 +191,7 @@ def alis_list():
 
 
 @api_bp.route('/faturalar/satis', methods=['GET'])
+@limiter.limit("30 per minute")
 def satis_list():
     """Tüm satış faturalarını listeler."""
     faturalar = FaturaService.get_satis_all()
@@ -146,6 +199,7 @@ def satis_list():
 
 
 @api_bp.route('/faturalar/iade', methods=['GET'])
+@limiter.limit("30 per minute")
 def iade_list():
     """Tüm iade faturalarını listeler."""
     faturalar = FaturaService.get_iade_all()

@@ -141,22 +141,28 @@
             
             <!-- İçerik Alanı -->
             <div class="content-area">
-                <!-- Flash Mesajları -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} fade-in">
-                                <i class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
-                                <span>{{ message }}</span>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-                
                 {% block content %}{% endblock %}
             </div>
         </main>
     </div>
+
+    <!-- Sabit Bildirim Alanı -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-notification-area" id="flashNotificationArea" aria-live="polite" aria-atomic="true">
+                {% for category, message in messages %}
+                    {% set mapped_category = 'danger' if category == 'error' else category %}
+                    <div class="flash-notification flash-{{ mapped_category }} fade-in" role="status">
+                        <i class="fas {% if mapped_category == 'success' %}fa-check-circle{% elif mapped_category == 'danger' %}fa-circle-exclamation{% elif mapped_category == 'warning' %}fa-triangle-exclamation{% else %}fa-circle-info{% endif %}"></i>
+                        <span>{{ message }}</span>
+                        <button type="button" class="flash-close" aria-label="Bildirimi kapat">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
     
     <!-- Veritabanı Mod Toggle ve Sync Butonları -->
     <div id="dbModeToggle" style="position: fixed; bottom: 1rem; right: 1rem; z-index: 1000; display: flex; gap: 0.5rem;">
@@ -434,6 +440,35 @@
     </script>
 
     <script>
+        // Sağ üst bildirim alanı: otomatik kapanma + manuel kapatma
+        (function() {
+            const container = document.getElementById('flashNotificationArea');
+            if (!container) return;
+
+            const closeNotification = (el) => {
+                el.classList.add('flash-hide');
+                setTimeout(() => {
+                    el.remove();
+                    if (!container.children.length) container.remove();
+                }, 260);
+            };
+
+            container.querySelectorAll('.flash-notification').forEach((item, index) => {
+                // Staggered giriş hissi
+                item.style.animationDelay = `${index * 80}ms`;
+
+                const closeBtn = item.querySelector('.flash-close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => closeNotification(item));
+                }
+
+                // 5.5 saniye sonra otomatik kapat
+                setTimeout(() => {
+                    if (document.body.contains(item)) closeNotification(item);
+                }, 5500 + (index * 400));
+            });
+        })();
+
         // Para formatla
         function formatMoney(amount) {
             return new Intl.NumberFormat('tr-TR', { 

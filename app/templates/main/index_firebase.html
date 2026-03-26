@@ -5,6 +5,26 @@
 {% block page_title %}Dashboard{% endblock %}
 {% block page_subtitle %}İşletmenizin finansal durumunu tek bakışta görün{% endblock %}
 
+{% block header_actions %}
+<div class="header-notif-wrap" id="headerNotifWrap">
+    <button type="button" class="header-notif-btn" id="notifToggleBtn" title="Bildirimler">
+        <i class="fas fa-bell"></i>
+        <span class="notification-badge" id="notifBadge" style="display: none;">0</span>
+    </button>
+    <div class="notif-dropdown" id="notifDropdown" hidden>
+        <div class="notif-dropdown-header">
+            <span><i class="fas fa-bell"></i> Bildirimler</span>
+        </div>
+        <div class="notification-list notification-list-dropdown" id="notificationList">
+            <div class="empty-state">
+                <i class="fas fa-check-circle"></i>
+                <p>Tüm işlemler yolunda!</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
 {% block extra_css %}
 <!-- Firebase SDK for License Validation -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -618,13 +638,79 @@
 /* ==================== BÖLÜM 4/4: QUICK ACTIONS & NOTIFICATIONS ==================== */
 .bottom-section {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
-@media (max-width: 1200px) { .bottom-section { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 1200px) { .bottom-section { grid-template-columns: 1fr; } }
 @media (max-width: 768px) { .bottom-section { grid-template-columns: 1fr; } }
+
+/* Header Notification Dropdown */
+.header-notif-wrap {
+    position: relative;
+}
+
+.header-notif-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--dash-border);
+    background: var(--glass-bg);
+    color: var(--dash-text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.header-notif-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(139, 92, 246, 0.45);
+}
+
+.header-notif-btn .notification-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+}
+
+.notif-dropdown {
+    position: absolute;
+    top: calc(100% + 0.6rem);
+    right: 0;
+    width: min(420px, calc(100vw - 2rem));
+    background: var(--glass-bg);
+    border: 1px solid var(--dash-border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-soft);
+    overflow: hidden;
+    z-index: 1200;
+}
+
+.notif-dropdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--dash-border);
+    color: var(--dash-text-primary);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.notif-dropdown-header span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.notification-list-dropdown {
+    max-height: 360px;
+    padding: 0.8rem;
+}
 
 /* Quick Actions */
 .quick-actions-card {
@@ -2304,23 +2390,6 @@
             </div>
         </div>
         
-        <!-- Bildirimler -->
-        <div class="notifications-card">
-            <div class="notifications-title">
-                <div>
-                    <i class="fas fa-bell"></i>
-                    <span>Bildirimler</span>
-                </div>
-                <span class="notification-badge" id="notifBadge">0</span>
-            </div>
-            <div class="notification-list" id="notificationList">
-                <div class="empty-state">
-                    <i class="fas fa-check-circle"></i>
-                    <p>Tüm işlemler yolunda!</p>
-                </div>
-            </div>
-        </div>
-        
         <!-- Son Aktiviteler -->
         <div class="activity-card">
             <div class="activity-title">
@@ -3020,7 +3089,11 @@ async function loadNotificationsAndActivity() {
         const notifBadge = document.getElementById('notifBadge');
         
         notifBadge.textContent = notifications.length;
-        if (notifications.length === 0) notifBadge.style.display = 'none';
+        if (notifications.length === 0) {
+            notifBadge.style.display = 'none';
+        } else {
+            notifBadge.style.display = 'inline-flex';
+        }
         
         if (notifications.length > 0) {
             notifContainer.innerHTML = notifications.map(n => `
@@ -3103,7 +3176,35 @@ function getTimeAgo(date) {
     return date.toLocaleDateString('tr-TR');
 }
 
+function initNotificationDropdown() {
+    const wrap = document.getElementById('headerNotifWrap');
+    const toggleBtn = document.getElementById('notifToggleBtn');
+    const dropdown = document.getElementById('notifDropdown');
+    if (!wrap || !toggleBtn || !dropdown) return;
+
+    const closeDropdown = () => {
+        dropdown.hidden = true;
+        toggleBtn.setAttribute('aria-expanded', 'false');
+    };
+
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const willOpen = dropdown.hidden;
+        dropdown.hidden = !willOpen;
+        toggleBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!wrap.contains(e.target)) closeDropdown();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDropdown();
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    initNotificationDropdown();
     updateDateTime();
     setInterval(updateDateTime, 1000);
     loadDashboardStats();
